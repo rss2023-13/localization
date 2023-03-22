@@ -25,5 +25,5 @@ def answer_to_2():
     Return your answers to 2 in a python list for the values z=0,3,5,8,10
     Each value should be a float
     """
-    return [0, 0, 0, 0, 0]
+    return [0, 0, 0]
 
