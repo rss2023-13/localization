@@ -21,11 +21,15 @@ class SensorModel:
         ####################################
         # TODO
         # Adjust these parameters
-        self.alpha_hit = 0
-        self.alpha_short = 0
-        self.alpha_max = 0
-        self.alpha_rand = 0
-        self.sigma_hit = 0
+        self.a_hit = .74
+        self.a_short = .07
+        self.a_max = .07
+        self.a_rand = .12
+        self.sigma = .5
+
+        self.zmax = 10
+        self.d = 7
+        self.eta = 1
 
         # Your sensor table will be a `table_width` x `table_width` np array:
         self.table_width = 201
@@ -51,6 +55,37 @@ class SensorModel:
                 OccupancyGrid,
                 self.map_callback,
                 queue_size=1)
+        
+
+
+    def p_hit(self, zk):
+        if 0 <= zk <= self.zmax:
+            return self.eta/(np.sqrt(2*np.pi*self.sigma**2)) * np.exp(-(zk-self.d)**2/(2*self.sigma**2))
+        else:
+            return 0
+
+    def p_short(self, zk):
+        if (0 <= zk <= self.d) and (self.d != 0):
+            return (2/self.d)*(1-zk/self.d)
+        else:
+            return 0
+
+    def p_max(self, zk):
+        if zk == self.zmax:
+            return 1
+        else:
+            return 0
+        
+    def p_rand(self, zk):
+        if 0 <= zk <= self.zmax:
+            return 1/self.zmax
+        else:
+            return 0
+
+
+    def p_total(self, zk):
+        return self.a_hit * self.p_hit(zk) + self.a_short * self.p_short(zk) + self.a_max * self.p_max(zk) + self.a_rand * self.p_rand(zk)
+
 
     def precompute_sensor_model(self):
         """
