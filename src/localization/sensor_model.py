@@ -17,6 +17,7 @@ class SensorModel:
         self.num_beams_per_particle = rospy.get_param("~num_beams_per_particle")
         self.scan_theta_discretization = rospy.get_param("~scan_theta_discretization")
         self.scan_field_of_view = rospy.get_param("~scan_field_of_view")
+        self.lidar_scale_to_map = 1
 
         ####################################
         # TODO
@@ -106,7 +107,7 @@ class SensorModel:
         returns:
             No return type. Directly modify `self.sensor_model_table`.
         """
-        raise NotImplementedError
+        print("theta", self.scan_theta_discretization)
 
     def evaluate(self, particles, observation):
         """
@@ -128,7 +129,7 @@ class SensorModel:
                the probability of each particle existing
                given the observation and the map.
         """
-
+        #pre check
         if not self.map_set:
             return
 
@@ -138,9 +139,27 @@ class SensorModel:
         #
         # You will probably want to use this function
         # to perform ray tracing from all the particles.
+
         # This produces a matrix of size N x num_beams_per_particle 
 
+        #scans is the zk, measured distance..
         scans = self.scan_sim.scan(particles)
+
+        #ranges will act as d - actual distance
+        ranges = np.array(observation.ranges)
+        #clip above zmax and below 0
+        ranges = [(ranges >= 0) & (ranges < self.zmax)]
+
+        #converting meters to pixels for LaserScan observation object
+        ranges = ranges / (self.map_resolution * self.lidar_scale_to_map)
+
+        #ray casting
+        
+
+
+
+
+
 
         ####################################
 
