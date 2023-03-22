@@ -25,11 +25,9 @@ class SensorModel:
         self.a_short = .07
         self.a_max = .07
         self.a_rand = .12
-        self.sigma = .5
+        self.sigma = 8
 
-        self.zmax = 10
-        self.d = 7
-        self.eta = 1
+        self.eta = 1 # 
 
         # Your sensor table will be a `table_width` x `table_width` np array:
         self.table_width = 201
@@ -58,13 +56,13 @@ class SensorModel:
         
 
 
-    def p_hit(self, zk):
+    def p_hit(self, zk, d):
         if 0 <= zk <= self.zmax:
             return self.eta/(np.sqrt(2*np.pi*self.sigma**2)) * np.exp(-(zk-self.d)**2/(2*self.sigma**2))
         else:
             return 0
 
-    def p_short(self, zk):
+    def p_short(self, zk, d):
         if (0 <= zk <= self.d) and (self.d != 0):
             return (2/self.d)*(1-zk/self.d)
         else:
@@ -83,8 +81,12 @@ class SensorModel:
             return 0
 
 
-    def p_total(self, zk):
-        return self.a_hit * self.p_hit(zk) + self.a_short * self.p_short(zk) + self.a_max * self.p_max(zk) + self.a_rand * self.p_rand(zk)
+    def p_total(self, zk, d):
+        return self.a_hit * self.p_hit(zk, d) + self.a_short * self.p_short(zk, d) + self.a_max * self.p_max(zk) + self.a_rand * self.p_rand(zk)
+
+    def p_total_excluding_hit(self, zk, d):
+        return self.a_short * self.p_short(zk, d) + self.a_max * self.p_max(zk) + self.a_rand * self.p_rand(zk)
+
 
 
     def precompute_sensor_model(self):
@@ -106,7 +108,51 @@ class SensorModel:
         returns:
             No return type. Directly modify `self.sensor_model_table`.
         """
-        raise NotImplementedError
+        # compute and normalize rows of p_hit
+        p_hit_table = np.array([np.array([self.p_hit(zk, d) for zk in range(0, self.table_width)]) for d in range(0, self.table_width)])
+        p_hit_sums = p_hit_table.sum(axis=0, keepdims=True) # row sums
+        p_hit_table = p_hit_table / p_hit_sums # scaling
+
+        # build the full table
+        p_total_excluding_hit_table = np.array([np.array([self.p_total_excluding_hit(zk, d) for zk in range(0, self.table_width)]) for d in range(0, self.table_width)])
+        p_total_table = self.a_hit * p_hit_table + p_total_excluding_hit_table
+
+        # normalize columns of p_total to 1
+        table_col_sums = p_total_table.sum(axis=1, keepdims = True) # col sums
+        
+        self.sensor_model_table = p_total_table / table_col_sums # scaling
+
+
+        # # plot the surface for viz
+        # from mpl_toolkits.mplot3d import Axes3D
+        # import matplotlib.pyplot as plt
+        # from matplotlib import cm
+        # from matplotlib.ticker import LinearLocator, FormatStrFormatter
+
+
+        # fig = plt.figure()
+        # ax = fig.gca(projection='3d')
+
+        # # Make data.
+        # X = np.arange(0, self.table_width, 1)
+        # Y = np.arange(0, self.table_width, 1)
+        # X, Y = np.meshgrid(X, Y)
+        # Z = self.sensor_model_table
+
+        # # Plot the surface.
+        # surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm,
+        #                     linewidth=0, antialiased=False)
+
+        # # Customize the z axis.
+        # ax.set_zlim(0, .15)
+        # ax.zaxis.set_major_locator(LinearLocator(10))
+        # ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+
+        # # Add a color bar which maps values to colors.
+        # fig.colorbar(surf, shrink=0.5, aspect=5)
+
+        # plt.show()
+
 
     def evaluate(self, particles, observation):
         """
@@ -118,10 +164,10 @@ class SensorModel:
             
                 [x0 y0 theta0]
                 [x1 y0 theta1]
-                [    ...     ]
+                [    ...     ] => z_k
 
             observation: A vector of lidar data measured
-                from the actual lidar.
+                from the actual lidar. => d
 
         returns:
            probabilities: A vector of length N representing
