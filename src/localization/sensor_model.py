@@ -109,7 +109,6 @@ class SensorModel:
         returns:
             No return type. Directly modify `self.sensor_model_table`.
         """
-<<<<<<< HEAD
         # compute and normalize rows of p_hit
         p_hit_table = np.array([np.array([self.p_hit(zk, d) for zk in range(0, self.table_width)]) for d in range(0, self.table_width)])
         p_hit_sums = p_hit_table.sum(axis=0, keepdims=True) # row sums
@@ -155,9 +154,6 @@ class SensorModel:
 
         # plt.show()
 
-=======
-        print("theta", self.scan_theta_discretization)
->>>>>>> 568c506397b725e3293fa401fd2441d2c0913063
 
     def evaluate(self, particles, observation):
         """
