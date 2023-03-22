@@ -48,8 +48,19 @@ class MotionModel:
             particles: An updated matrix of the
                 same size
         """
+        N = particles.shape[0]
         world_odom = self.rotate_vectorized(odometry, particles[:, 2])
         new_particles = particles + world_odom
+
+        # Adding noise - higher variance if the odometry data is high magnitude
+        scale_factor = 0.1
+        max_x_scale = scale_factor * np.abs(odometry[0])
+        max_y_scale = scale_factor * np.abs(odometry[1])
+        max_theta_scale = scale_factor * np.abs(odometry[2])
+
+        new_particles[:,0] = new_particles[:,0] + np.random.normal(scale=max_x_scale, size=N)
+        new_particles[:,1] = new_particles[:,1] + np.random.normal(scale=max_y_scale, size=N)
+        new_particles[:,2] = new_particles[:,2] + np.random.normal(scale=max_theta_scale, size=N)
 
         return new_particles
         
