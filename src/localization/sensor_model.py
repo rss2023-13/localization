@@ -82,8 +82,8 @@ class SensorModel:
             return 0
 
 
-    def p_total(self, zk, d):
-        return self.a_hit * self.p_hit(zk, d) + self.a_short * self.p_short(zk, d) + self.a_max * self.p_max(zk) + self.a_rand * self.p_rand(zk)
+    # def p_total(self, zk, d): # dont need this
+    #     return self.a_hit * self.p_hit(zk, d) + self.a_short * self.p_short(zk, d) + self.a_max * self.p_max(zk) + self.a_rand * self.p_rand(zk)
 
     def p_total_excluding_hit(self, zk, d):
         return self.a_short * self.p_short(zk, d) + self.a_max * self.p_max(zk) + self.a_rand * self.p_rand(zk)
@@ -124,7 +124,7 @@ class SensorModel:
         self.sensor_model_table = p_total_table / table_col_sums # scaling
 
 
-        # # plot the surface for viz
+        # # plot the surface for visualization
         # from mpl_toolkits.mplot3d import Axes3D
         # import matplotlib.pyplot as plt
         # from matplotlib import cm
