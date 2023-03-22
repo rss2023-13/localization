@@ -14,12 +14,21 @@ class MotionModel:
 
         ####################################
 
-    def rotate(self, odometry, theta):
-        rotation_matrix = np.array([[math.cos(theta), -math.sin(theta), 0], 
-                            [math.sin(theta), math.cos(theta), 0],
-                            [0, 0, 1]])
+    def rotate_vectorized(self, odometry, thetas):
+        """
+        thetas is an array of angles corresponding to the pose of the original particles
+        """
 
-        return np.matmul(rotation_matrix, odometry)
+        cosines = np.cos(thetas)
+        sines = np.sin(thetas)
+        zeros = np.zeros_like(thetas)
+        ones = np.ones_like(thetas)
+        matrices = np.array([[cosines, -sines, zeros],
+                             [sines, cosines, zeros],
+                             [zeros, zeros, ones]])
+
+        matrices = np.transpose(matrices, axes=(2,0,1))
+        return np.matmul(matrices, odometry)
 
     def evaluate(self, particles, odometry):
         """
@@ -39,10 +48,16 @@ class MotionModel:
             particles: An updated matrix of the
                 same size
         """
-        new_particles = np.zeros_like(particles)
-        for i, particle in enumerate(particles):
-            new_particles[i] = particle + self.rotate(odometry, particle[2])
+        world_odom = self.rotate_vectorized(odometry, particles[:, 2])
+        new_particles = particles + world_odom
 
         return new_particles
         
-        
+if __name__ == "__main__":
+    test_motion = MotionModel()
+    test_particles = np.array([[3,4,np.pi/3],
+                               [7,6,np.pi/4]])
+    # part_2 = np.array([[7,6,np.pi/4]])
+    test_odom = np.array([0.2232, -0.013397, np.pi/60])
+    new_particles = test_motion.evaluate(test_particles, test_odom)
+    print(new_particles)
