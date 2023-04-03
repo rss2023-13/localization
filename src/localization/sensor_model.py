@@ -33,9 +33,9 @@ class SensorModel:
         # Your sensor table will be a `table_width` x `table_width` np array:
         self.table_width = 201
 
-        self.zmax = 10 #10 meter max lidar scan range
+        # self.zmax_meters = 10 #10 meter max lidar scan range
 
-        self.zmax_pixel = 200 # since table has index values 0 through 200
+        self.zmax = 200 # since table has index values 0 through 200
 
         self.map_resolution = 10 / 201# meters / pixel, this determines how we bucket the lidar
 
@@ -67,13 +67,13 @@ class SensorModel:
 
     def p_hit(self, zk, d):
         if 0 <= zk <= self.zmax:
-            return self.eta/(np.sqrt(2*np.pi*self.sigma**2)) * np.exp(-(zk-self.d)**2/(2*self.sigma**2))
+            return self.eta/(np.sqrt(2*np.pi*self.sigma**2)) * np.exp(-(zk-d)**2/(2*self.sigma**2))
         else:
             return 0
 
     def p_short(self, zk, d):
-        if (0 <= zk <= self.d) and (self.d != 0):
-            return (2/self.d)*(1-zk/self.d)
+        if (0 <= zk <= d) and (d != 0):
+            return (2/d)*(1-zk/d)
         else:
             return 0
 
@@ -131,7 +131,7 @@ class SensorModel:
         
         self.sensor_model_table = p_total_table / table_col_sums # scaling
 
-        print(self.sensor_model_table.shape)
+        
         # # plot the surface for visualization
         # from mpl_toolkits.mplot3d import Axes3D
         # import matplotlib.pyplot as plt
@@ -201,7 +201,7 @@ class SensorModel:
         scans = self.scan_sim.scan(particles)
 
         #ranges are zk, measured distance..
-        ranges = np.array(observation.ranges)
+        ranges = np.array(observation)
 
         # Downsample the lidar beams to num_beams_per_particle
         total_num_ranges = len(ranges)
@@ -210,25 +210,38 @@ class SensorModel:
 
         downsampled_ranges = ranges[downsample_indices]
 
+        #converting meters to pixels for observations and ground truth scans
+        pixel_ranges = round(downsampled_ranges / (self.map_resolution * self.lidar_scale_to_map)) # round this to an int
+
+        pixel_scans = round(scans / (self.map_resolution * self.lidar_scale_to_map))
+
         #clip above zmax and below 0 #TODO
-        max_clipped_ranges = np.where(downsampled_ranges > self.zmax, self.zmax, downsampled_ranges)
+        max_clipped_ranges = np.where(pixel_ranges > self.zmax, self.zmax, pixel_ranges)
 
         final_ranges = np.where(max_clipped_ranges < 0, 0, max_clipped_ranges) # clip below zero
 
-        max_clipped_scans = np.where(scans > self.zmax, self.zmax, scans)
+        max_clipped_scans = np.where(pixel_scans > self.zmax, self.zmax, pixel_scans)
 
         final_scans = np.where(max_clipped_scans < 0, 0, max_clipped_scans) # clip below zero
 
         
         
 
-        #converting meters to pixels for observations and ground truth scans
-        pixel_ranges = round(final_ranges / (self.map_resolution * self.lidar_scale_to_map)) # round this to an int
+        
 
-        pixel_scans = round(final_scans / (self.map_resolution * self.lidar_scale_to_map))
+        all_observation_likelihoods = []
+
+        for particle_beams in final_scans:
+            likelihoods = np.array([self.sensor_model_table[particle_beams[i], final_ranges[i]] for i in range(self.num_beams_per_particle)])
+
+            total_likelihood = np.prod(likelihoods) ** self.squash_parameter
+
+            all_observation_likelihoods.append(total_likelihood)
+
+        return all_observation_likelihoods
 
         
-        # There is a zk and d matrix for each particle. Look up the element self.sensor_model_table[zk(i), d(i)], multiply over all i (all beams) for each particle
+        # There is a zk and d matrix for each particle. Look up the element self.sensor_model_table[d(i), zk(i)], multiply over all i (all beams) for each particle
         
 
 
