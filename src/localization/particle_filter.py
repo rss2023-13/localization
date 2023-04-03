@@ -122,11 +122,26 @@ class ParticleFilter:
 
 
         
-        def pose_initialization(self):
+        def pose_initialization(self, pose_data):
 
+            position = pose_data.pose.pose.position
+            q = pose_data.pose.pose.orientation
+            num_particles = rospy.get_param("num_particles")
             
+            angles = tf.euler_from_quaternion([q.x, q.y, q.z, q.w])
 
-            pass
+            base_point = [position.x, position.y, angles[2]]
+            particles = np.zeros((num_particles, 3))
+
+            particles[:,1] += base_point[1]
+            particles[:,2] += base_point[2]
+
+            particles[:, 0] = np.random.normal(loc=position.x, scale=0.1*position.x, size=num_particles)
+            particles[:, 1] = np.random.normal(loc=position.y, scale=0.1*position.y, size=num_particles)
+            particles[:, 2] = np.random.normal(loc=angles[2], scale=0.1*angles[2], size=num_particles)
+            
+            self.particles = particles
+            self.probs = np.ones(num_particles)/num_particles
 
 
 if __name__ == "__main__":
