@@ -131,7 +131,7 @@ class SensorModel:
         
         self.sensor_model_table = p_total_table / table_col_sums # scaling
 
-        print(self.sensor_model_table.shape)
+        
         # # plot the surface for visualization
         # from mpl_toolkits.mplot3d import Axes3D
         # import matplotlib.pyplot as plt
@@ -201,7 +201,7 @@ class SensorModel:
         scans = self.scan_sim.scan(particles)
 
         #ranges are zk, measured distance..
-        ranges = np.array(observation.ranges)
+        ranges = np.array(observation)
 
         # Downsample the lidar beams to num_beams_per_particle
         total_num_ranges = len(ranges)
@@ -227,8 +227,19 @@ class SensorModel:
 
         pixel_scans = round(final_scans / (self.map_resolution * self.lidar_scale_to_map))
 
+        all_observation_likelihoods = []
+
+        for particle_beams in pixel_scans:
+            likelihoods = np.array([self.sensor_model_table[pixel_scans[i], pixel_ranges[i]] for i in range(self.num_beams_per_particle)])
+
+            total_likelihood = np.prod(likelihoods) ** self.squash_parameter
+
+            all_observation_likelihoods.append(total_likelihood)
+
+        return all_observation_likelihoods
+
         
-        # There is a zk and d matrix for each particle. Look up the element self.sensor_model_table[zk(i), d(i)], multiply over all i (all beams) for each particle
+        # There is a zk and d matrix for each particle. Look up the element self.sensor_model_table[d(i), zk(i)], multiply over all i (all beams) for each particle
         
 
 
