@@ -206,14 +206,14 @@ class SensorModel:
         # Downsample the lidar beams to num_beams_per_particle
         total_num_ranges = len(ranges)
 
-        downsample_indices = np.round(np.linspace(0, total_num_ranges, self.num_beams_per_particle)).astype(int)
+        downsample_indices = np.round(np.linspace(0, total_num_ranges - 1, self.num_beams_per_particle)).astype(int)
 
         downsampled_ranges = ranges[downsample_indices]
 
         #converting meters to pixels for observations and ground truth scans
-        pixel_ranges = round(downsampled_ranges / (self.map_resolution * self.lidar_scale_to_map)) # round this to an int
+        pixel_ranges = np.round(downsampled_ranges / (self.map_resolution * self.lidar_scale_to_map)).astype(int) # round this to an int
 
-        pixel_scans = round(scans / (self.map_resolution * self.lidar_scale_to_map))
+        pixel_scans = np.round(scans / (self.map_resolution * self.lidar_scale_to_map)).astype(int)
 
         #clip above zmax and below 0 #TODO
         max_clipped_ranges = np.where(pixel_ranges > self.zmax, self.zmax, pixel_ranges)
