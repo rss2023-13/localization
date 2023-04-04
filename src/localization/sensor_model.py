@@ -1,5 +1,7 @@
+from __future__ import division
 import numpy as np
 from localization.scan_simulator_2d import PyScanSimulator2D
+
 # Try to change to just `from scan_simulator_2d import PyScanSimulator2D` 
 # if any error re: scan_simulator_2d occurs
 
@@ -26,9 +28,9 @@ class SensorModel:
         self.a_short = .07
         self.a_max = .07
         self.a_rand = .12
-        self.sigma = 8
+        self.sigma = 8.
 
-        self.eta = 1 # 
+        self.eta = 1. # 
 
         # Your sensor table will be a `table_width` x `table_width` np array:
         self.table_width = 201
@@ -37,7 +39,7 @@ class SensorModel:
 
         self.zmax = 200 # since table has index values 0 through 200
 
-        self.map_resolution = 10 / 201# meters / pixel, this determines how we bucket the lidar
+        self.map_resolution = 10. / 201# meters / pixel, this determines how we bucket the lidar
 
         self.squash_parameter = 1 / 2.2
         ####################################
@@ -67,27 +69,27 @@ class SensorModel:
 
     def p_hit(self, zk, d):
         if 0 <= zk <= self.zmax:
-            return self.eta/(np.sqrt(2*np.pi*self.sigma**2)) * np.exp(-(zk-d)**2/(2*self.sigma**2))
+            return self.eta/(np.sqrt(2. *np.pi*self.sigma**2)) * np.exp(-(zk-d)**2. / (2. *self.sigma**2))
         else:
-            return 0
+            return 0.
 
     def p_short(self, zk, d):
         if (0 <= zk <= d) and (d != 0):
-            return (2/d)*(1-zk/d)
+            return (2. /d)*(1. - zk / float(d))
         else:
-            return 0
+            return 0.
 
     def p_max(self, zk):
         if zk == self.zmax:
-            return 1
+            return 1.
         else:
-            return 0
+            return 0.
         
     def p_rand(self, zk):
         if 0 <= zk <= self.zmax:
-            return 1/self.zmax
+            return 1. /self.zmax
         else:
-            return 0
+            return 0.
 
 
     # def p_total(self, zk, d): # dont need this
@@ -119,7 +121,7 @@ class SensorModel:
         """
         # compute and normalize rows of p_hit
         p_hit_table = np.array([np.array([self.p_hit(zk, d) for zk in range(0, self.table_width)]) for d in range(0, self.table_width)])
-        p_hit_sums = p_hit_table.sum(axis=0, keepdims=True) # row sums
+        p_hit_sums = p_hit_table.sum(axis=1, keepdims=True) # sum across columns
         p_hit_table = p_hit_table / p_hit_sums # scaling
 
         # build the full table
@@ -127,11 +129,13 @@ class SensorModel:
         p_total_table = self.a_hit * p_hit_table + p_total_excluding_hit_table
 
         # normalize columns of p_total to 1
-        table_col_sums = p_total_table.sum(axis=1, keepdims = True) # col sums
+        table_col_sums = p_total_table.sum(axis=1, keepdims = True) # sum across rows
         
         self.sensor_model_table = p_total_table / table_col_sums # scaling
 
-        
+        self.sensor_model_table = self.sensor_model_table.T
+
+        print(self.sensor_model_table)
         # # plot the surface for visualization
         # from mpl_toolkits.mplot3d import Axes3D
         # import matplotlib.pyplot as plt
@@ -223,6 +227,10 @@ class SensorModel:
         max_clipped_scans = np.where(pixel_scans > self.zmax, self.zmax, pixel_scans)
 
         final_scans = np.where(max_clipped_scans < 0, 0, max_clipped_scans) # clip below zero
+
+        print(downsampled_ranges)
+
+        print(final_ranges)
 
         
         
