@@ -12,7 +12,7 @@ class MotionModel:
         # TODO
         # Do any precomputation for the motion
         # model here.
-	pass
+	    pass
         ####################################
 
     def rotate_vectorized(self, odometry, thetas):
@@ -54,12 +54,13 @@ class MotionModel:
         new_particles = particles + world_odom
 
         # Adding noise - higher variance if the odometry data is high magnitude
-        if self.DETERMINISTIC:
-	    scale_factor = 0
-	else:
-	    scale_factor = 0.1
+        # if self.DETERMINISTIC:
+	    #     scale_factor = 0
+	    # else: scale_factor = 0.1
 
-	max_x_scale = scale_factor * np.abs(odometry[0])
+        scale_factor = 0.1
+
+        max_x_scale = scale_factor * np.abs(odometry[0])
         max_y_scale = scale_factor * np.abs(odometry[1])
         max_theta_scale = scale_factor * np.abs(odometry[2])
 

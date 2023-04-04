@@ -9,6 +9,8 @@ from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from geometry_msgs.msg import Point
+from geometry_msgs.msg import PoseArray
+from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Quaternion
 
 
@@ -17,6 +19,7 @@ class ParticleFilter:
     def __init__(self):
         # Get parameters
         self.particle_filter_frame = rospy.get_param("~particle_filter_frame", "/base_link_pf")
+        self.rate = 26 #hertz
 
         # Initialize publishers/subscribers
         #
@@ -52,6 +55,9 @@ class ParticleFilter:
         #     odometry you publish here should be with respect to the
         #     "/map" frame.
         self.odom_pub  = rospy.Publisher("/pf/pose/odom", Odometry, queue_size = 1)
+
+        self.particle_pub  = rospy.Publisher("/particles", PoseArray, queue_size = 1)
+
         
         # Initialize the models
         self.motion_model = MotionModel()
@@ -70,9 +76,38 @@ class ParticleFilter:
     # Publish a transformation frame between the map
     # and the particle_filter_frame.
 
+    def publish_particles(self):
+        particle_array = PoseArray()
+        particle_list = []
+        particle_array.header.frame_id = "map"
+        for particle in self.particles:
+            point = Point()
+            point.x = particle[0]
+            point.y = particle[1]
+            point.z = 0
+
+            orientation = Quaternion()
+            q = tf.quaternion_from_euler(0,0,particle[2])
+            orientation.x = q[0]
+            orientation.y = q[1]
+            orientation.z = q[2]
+            orientation.w = q[3]
+
+            pose = Pose()
+            pose.position = point
+            pose.orientation = orientation
+
+            particle_list.append(pose)
+
+        particle_array.poses = particle_list
+        self.particle_pub.publish(particle_array)
+
+
     def publish_average_point(self, particles, probs):
         new_x = np.average(particles[:,0], weights=probs)
         new_y = np.average(particles[:,1], weights=probs)
+
+        # rospy.loginfo(particles[0])
 
         angles = self.particles[:,2]
         angle_vecs = np.array([np.cos(angles), np.sin(angles)])
@@ -92,10 +127,12 @@ class ParticleFilter:
         orientation.w = q[3]
 
         odom_msg = Odometry()
+        odom_msg.child_frame_id = "base_link_pf"
+        odom_msg.header.frame_id = "map"
         odom_msg.pose.pose.position = point
         odom_msg.pose.pose.orientation = orientation
 
-        rospy.loginfo(point)
+        # rospy.loginfo(point)
         # rospy.loginfo(orientation)
 
         self.odom_pub.publish(odom_msg)
@@ -116,16 +153,17 @@ class ParticleFilter:
         linear = odom_data.twist.twist.linear
         angular = odom_data.twist.twist.angular
 
-        dx = linear.x
-        dy = linear.y
-        dtheta_x = angular.x
-        dtheta_y = angular.y
-        dtheta = np.arctan2(dtheta_y, dtheta_x)
+        dx = linear.x/self.rate
+        dy = linear.y/self.rate
+        dtheta = angular.z/self.rate
+
+        # rospy.loginfo(linear)
 
         self.particles = self.motion_model.evaluate(self.particles, np.array([dx, dy, dtheta]))
         
         # Get the "average" particle through a weighted average
         self.publish_average_point(self.particles, self.probs)
+        self.publish_particles()
 
         # rospy.loginfo(self.particles)
 
@@ -145,9 +183,11 @@ class ParticleFilter:
         particles[:,1] += base_point[1]
         particles[:,2] += base_point[2]
 
-        particles[:, 0] = np.random.normal(loc=position.x, scale=abs(0.1*position.x), size=self.num_particles)
-        particles[:, 1] = np.random.normal(loc=position.y, scale=abs(0.1*position.y), size=self.num_particles)
-        particles[:, 2] = np.random.normal(loc=angles[2], scale=abs(0.1*angles[2]), size=self.num_particles)
+        scale = 0.1
+
+        particles[:, 0] = np.random.normal(loc=position.x, scale=abs(scale*position.x), size=self.num_particles)
+        particles[:, 1] = np.random.normal(loc=position.y, scale=abs(scale*position.y), size=self.num_particles)
+        particles[:, 2] = np.random.normal(loc=angles[2], scale=abs(scale*angles[2]), size=self.num_particles)
         
         self.particles = particles
         self.probs = np.ones(self.num_particles)/self.num_particles
