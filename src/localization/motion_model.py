@@ -20,6 +20,24 @@ class MotionModel:
         thetas is an array of angles corresponding to the pose of the original particles
         """
 
+        # N = thetas.shape[0]
+
+        # dx_copies = np.ones_like(thetas) * odometry[0]
+        # dy_copies = np.ones_like(thetas) * odometry[1]
+        # dtheta_copies = np.ones_like(thetas) * odometry[2]
+
+        # odometry_n_copies = np.array([dx_copies, dy_copies, dtheta_copies]).T
+
+        # scale_factor = 0 #change for nondeterministic
+
+        # max_x_scale = scale_factor * (np.abs(odometry[0]) + 0.05)
+        # max_y_scale = scale_factor * (np.abs(odometry[1]) + 0.05)
+        # max_theta_scale = scale_factor * np.abs(odometry[2])
+
+        # odometry_n_copies[:,0] = odometry_n_copies[:,0] + np.random.normal(scale=max_x_scale, size=N)
+        # odometry_n_copies[:,1] = odometry_n_copies[:,1] + np.random.normal(scale=max_y_scale, size=N)
+        # odometry_n_copies[:,2] = odometry_n_copies[:,2] + np.random.normal(scale=max_theta_scale, size=N)
+
         cosines = np.cos(thetas)
         sines = np.sin(thetas)
         zeros = np.zeros_like(thetas)
@@ -28,7 +46,7 @@ class MotionModel:
                              [sines, cosines, zeros],
                              [zeros, zeros, ones]])
 
-        matrices = np.transpose(matrices, axes=(2,0,1))
+        matrices = np.transpose(matrices, axes=(2, 0, 1))
         return np.matmul(matrices, odometry)
 
     def evaluate(self, particles, odometry):
@@ -54,12 +72,10 @@ class MotionModel:
         world_odom = self.rotate_vectorized(odometry, particles[:, 2])
         new_particles = particles + world_odom
 
-        # Adding noise - higher variance if the odometry data is high magnitude
-        # if self.DETERMINISTIC:
-	    #     scale_factor = 0
-	    # else: scale_factor = 0.1
-
-        scale_factor = 2
+        if self.DETERMINISTIC:
+            scale_factor = 0
+        else:
+            scale_factor = 2
 
         max_x_scale = scale_factor * (np.abs(odometry[0]) + 0.05)
         max_y_scale = scale_factor * (np.abs(odometry[1]) + 0.05)
