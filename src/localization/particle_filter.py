@@ -183,10 +183,10 @@ class ParticleFilter:
         particles[:,1] += base_point[1]
         particles[:,2] += base_point[2]
 
-        scale = 0.1
+        scale = 0.05
 
-        particles[:, 0] = np.random.normal(loc=position.x, scale=abs(scale*position.x), size=self.num_particles)
-        particles[:, 1] = np.random.normal(loc=position.y, scale=abs(scale*position.y), size=self.num_particles)
+        particles[:, 0] = np.random.normal(loc=position.x, scale=.3, size=self.num_particles)
+        particles[:, 1] = np.random.normal(loc=position.y, scale=.3, size=self.num_particles)
         particles[:, 2] = np.random.normal(loc=angles[2], scale=abs(scale*angles[2]), size=self.num_particles)
         
         self.particles = particles
