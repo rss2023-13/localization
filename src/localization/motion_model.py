@@ -12,7 +12,7 @@ class MotionModel:
         # TODO
         # Do any precomputation for the motion
         # model here.
-	    self.deterministic = rospy.get_param("deterministic", True)
+	    self.deterministic = rospy.get_param("deterministic", False)
         ####################################
 
     def rotate_vectorized(self, odometry, thetas):
