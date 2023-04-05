@@ -39,7 +39,6 @@ class SensorModel:
 
         self.zmax = 200 # since table has index values 0 through 200
 
-        self.map_resolution = 10. / 201# meters / pixel, this determines how we bucket the lidar
 
         self.squash_parameter = 1 / 2.2
         ####################################
@@ -59,12 +58,13 @@ class SensorModel:
         # Subscribe to the map
         self.map = None
         self.map_set = False
+        self.map_resolution = None
         rospy.Subscriber(
                 self.map_topic,
                 OccupancyGrid,
                 self.map_callback,
                 queue_size=1)
-        
+
 
 
     def p_hit(self, zk, d):
@@ -232,10 +232,6 @@ class SensorModel:
 
         # print(final_ranges)
 
-        
-        
-
-        
 
         all_observation_likelihoods = []
 
@@ -284,5 +280,7 @@ class SensorModel:
 
         # Make the map set
         self.map_set = True
+
+        self.map_resolution = map_msg.info.resolution
 
         print("Map initialized")
