@@ -4,7 +4,7 @@ import rospy
 
 class MotionModel:
 
-    DETERMINISTIC = rospy.get_param("~deterministic", True)
+    # DETERMINISTIC = 
 
     def __init__(self):
 
@@ -12,7 +12,7 @@ class MotionModel:
         # TODO
         # Do any precomputation for the motion
         # model here.
-	    pass
+	    self.deterministic = rospy.get_param("deterministic", True)
         ####################################
 
     def rotate_vectorized(self, odometry, thetas):
@@ -72,7 +72,7 @@ class MotionModel:
         world_odom = self.rotate_vectorized(odometry, particles[:, 2])
         new_particles = particles + world_odom
 
-        if self.DETERMINISTIC:
+        if self.deterministic:
             scale_factor = 0
         else:
             scale_factor = 2
