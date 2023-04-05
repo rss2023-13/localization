@@ -58,7 +58,7 @@ class SensorModel:
         # Subscribe to the map
         self.map = None
         self.map_set = False
-        self.map_resolution = None
+        self.map_resolution = None # set in the callback
         rospy.Subscriber(
                 self.map_topic,
                 OccupancyGrid,
@@ -220,37 +220,19 @@ class SensorModel:
         pixel_scans = np.rint(scans / (self.map_resolution * self.lidar_scale_to_map)).astype(int)
 
         #clip above zmax and below 0 #TODO
-        max_clipped_ranges = np.where(pixel_ranges > self.zmax, self.zmax, pixel_ranges)
+        clipped_ranges = np.where(pixel_ranges > self.zmax, self.zmax, pixel_ranges)
+        clipped_ranges = np.where(clipped_ranges < 0, 0, clipped_ranges) # clip below zero
 
-        final_ranges = np.where(max_clipped_ranges < 0, 0, max_clipped_ranges) # clip below zero
-
-        max_clipped_scans = np.where(pixel_scans > self.zmax, self.zmax, pixel_scans)
-
-        final_scans = np.where(max_clipped_scans < 0, 0, max_clipped_scans) # clip below zero
-
-        print(downsampled_ranges)
-
-        print(final_ranges)
+        clipped_scans = np.where(pixel_scans > self.zmax, self.zmax, pixel_scans)
+        clipped_scans = np.where(clipped_scans < 0, 0, clipped_scans) # clip below zero
 
 
-        all_observation_likelihoods = []
-
-        for particle_beams in final_scans:
-            likelihoods = np.array([self.sensor_model_table[final_ranges[i], particle_beams[i]] for i in range(self.num_beams_per_particle)])
-
-            total_likelihood = np.prod(likelihoods) ** self.squash_parameter
-
-            all_observation_likelihoods.append(total_likelihood)
-
+        all_observation_likelihoods = np.array([np.prod(self.sensor_model_table[clipped_ranges, particle_beam]) ** self.squash_parameter for particle_beam in clipped_scans])
         return all_observation_likelihoods
 
         
         # There is a zk and d matrix for each particle. Look up the element self.sensor_model_table[d(i), zk(i)], multiply over all i (all beams) for each particle
         
-
-
-
-
 
         ####################################
 
