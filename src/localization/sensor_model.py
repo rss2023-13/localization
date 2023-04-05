@@ -15,10 +15,10 @@ class SensorModel:
 
     def __init__(self):
         # Fetch parameters
-        self.map_topic = rospy.get_param("~map_topic")
-        self.num_beams_per_particle = rospy.get_param("~num_beams_per_particle")
-        self.scan_theta_discretization = rospy.get_param("~scan_theta_discretization")
-        self.scan_field_of_view = rospy.get_param("~scan_field_of_view")
+        self.map_topic = rospy.get_param("~map_topic", "/map")
+        self.num_beams_per_particle = rospy.get_param("~num_beams_per_particle", 100)
+        self.scan_theta_discretization = rospy.get_param("~scan_theta_discretization", 500)
+        self.scan_field_of_view = rospy.get_param("~scan_field_of_view", 4.71)
         self.lidar_scale_to_map = 1
 
         ####################################
@@ -135,7 +135,7 @@ class SensorModel:
 
         self.sensor_model_table = self.sensor_model_table.T
 
-        print(self.sensor_model_table)
+        # print(self.sensor_model_table)
         # # plot the surface for visualization
         # from mpl_toolkits.mplot3d import Axes3D
         # import matplotlib.pyplot as plt
@@ -228,9 +228,9 @@ class SensorModel:
 
         final_scans = np.where(max_clipped_scans < 0, 0, max_clipped_scans) # clip below zero
 
-        print(downsampled_ranges)
+        # print(downsampled_ranges)
 
-        print(final_ranges)
+        # print(final_ranges)
 
         
         

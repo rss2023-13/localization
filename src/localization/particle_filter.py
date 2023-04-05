@@ -32,9 +32,11 @@ class ParticleFilter:
         #     information, and *not* use the pose component.
         scan_topic = rospy.get_param("~scan_topic", "/scan")
         odom_topic = rospy.get_param("~odom_topic", "/odom")
-#        self.laser_sub = rospy.Subscriber(scan_topic, LaserScan,
-#                                          self.lidar_callback,
-#                                          queue_size=1)
+
+        self.laser_sub = rospy.Subscriber(scan_topic, LaserScan,
+                                          self.lidar_callback,
+                                          queue_size=1)
+
         self.odom_sub  = rospy.Subscriber(odom_topic, Odometry,
                                           self.odom_callback,
                                           queue_size=1)
@@ -58,14 +60,16 @@ class ParticleFilter:
 
         self.particle_pub  = rospy.Publisher("/particles", PoseArray, queue_size = 1)
 
-        
-        # Initialize the models
-        self.motion_model = MotionModel()
-#        self.sensor_model = SensorModel()
-
         self.num_particles = rospy.get_param("~num_particles", 200)
         self.particles = np.zeros((self.num_particles, 3))
         self.probs = np.ones((self.num_particles,))
+        
+        
+        # Initialize the models
+        self.motion_model = MotionModel()
+        self.sensor_model = SensorModel()
+       
+
     # Implement the MCL algorithm
     # using the sensor model and the motion model
     #
@@ -139,13 +143,17 @@ class ParticleFilter:
 
     def lidar_callback(self, lidar_data):
 
-        probs = self.sensor_model.evaluate(self.particles, lidar_data.ranges)
-        self.particles = np.random.choice(self.particles, size=particles.shape[0], p=probs)
+        probs = np.array(self.sensor_model.evaluate(self.particles, lidar_data.ranges)) #CHANGE THIS LATER, VECTORIZE STUFF IN SENSOR MODEL
+        # rospy.loginfo(probs)
+        # rospy.loginfo(probs.sum())
+        probs += probs.mean()
+        self.particles = self.particles[np.random.choice(np.arange(self.num_particles), size=self.num_particles, p=probs/probs.sum())]
         self.probs = probs
         
         # Publish the "average pose" of the particles
         # TODO: Experiment with the weighted average
         self.publish_average_point(self.particles, self.probs)
+        self.publish_particles()
 
     def odom_callback(self, odom_data):
 
@@ -166,8 +174,6 @@ class ParticleFilter:
         self.publish_particles()
 
         # rospy.loginfo(self.particles)
-
-
     
     def pose_initialization(self, pose_data):
 

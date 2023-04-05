@@ -50,6 +50,7 @@ class MotionModel:
                 same size
         """
         N = particles.shape[0]
+
         world_odom = self.rotate_vectorized(odometry, particles[:, 2])
         new_particles = particles + world_odom
 
@@ -58,10 +59,10 @@ class MotionModel:
 	    #     scale_factor = 0
 	    # else: scale_factor = 0.1
 
-        scale_factor = 0.1
+        scale_factor = 2
 
-        max_x_scale = scale_factor * np.abs(odometry[0])
-        max_y_scale = scale_factor * np.abs(odometry[1])
+        max_x_scale = scale_factor * (np.abs(odometry[0]) + 0.05)
+        max_y_scale = scale_factor * (np.abs(odometry[1]) + 0.05)
         max_theta_scale = scale_factor * np.abs(odometry[2])
 
         new_particles[:,0] = new_particles[:,0] + np.random.normal(scale=max_x_scale, size=N)
