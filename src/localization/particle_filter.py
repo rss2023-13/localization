@@ -151,14 +151,14 @@ class ParticleFilter:
         # rospy.loginfo(probs)
         # rospy.loginfo(probs.sum())
         #probs += probs.mean()
-        probs = probs ** .75
-        self.particles = self.particles[np.random.choice(np.arange(self.num_particles), size=self.num_particles, p=probs/probs.sum())]
-        
-        if self.flag:            
+        if self.flag: 
+            probs = probs ** .75
+            self.particles = self.particles[np.random.choice(np.arange(self.num_particles), size=self.num_particles, p=probs/probs.sum())]
+                   
             # Publish the "average pose" of the particles
             # TODO: Experiment with the weighted average
             self.publish_average_point(self.particles, self.probs)
-            #self.publish_particles()
+            self.publish_particles()
 
 
         self.flag = not self.flag
@@ -179,7 +179,7 @@ class ParticleFilter:
         
         # Get the "average" particle through a weighted average
         self.publish_average_point(self.particles, self.probs)
-        # self.publish_particles()
+        self.publish_particles()
 
         # rospy.loginfo(self.particles)
     

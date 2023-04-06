@@ -71,8 +71,8 @@ class MotionModel:
         else:
             scale_factor = 2
 
-        max_x_scale = scale_factor * (np.abs(odometry[0]) + 0.05)
-        max_y_scale = scale_factor * (np.abs(odometry[1]) + 0.06)
+        max_x_scale = scale_factor * (np.abs(odometry[0])+0.05)
+        max_y_scale = scale_factor * (np.abs(odometry[1])+0.05)
         max_theta_scale = scale_factor * np.abs(odometry[2])
 
         new_particles[:,0] = new_particles[:,0] + np.random.normal(scale=max_x_scale, size=N)
