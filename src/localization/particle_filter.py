@@ -133,7 +133,7 @@ class ParticleFilter:
         orientation.w = q[3]
 
         odom_msg = Odometry()
-        odom_msg.child_frame_id = "base_link_pf"
+        odom_msg.child_frame_id = self.particle_filter_frame
         odom_msg.header.frame_id = "map"
         odom_msg.pose.pose.position = point
         odom_msg.pose.pose.orientation = orientation
@@ -144,16 +144,17 @@ class ParticleFilter:
         self.odom_pub.publish(odom_msg)
 
     def lidar_callback(self, lidar_data):
-        if self.flag:
-            probs = np.array(self.sensor_model.evaluate(self.particles, lidar_data.ranges)) #CHANGE THIS LATER, VECTORIZE STUFF IN SENSOR MODEL
-            self.probs = probs
 
-            # rospy.loginfo(probs)
-            # rospy.loginfo(probs.sum())
-            #probs += probs.mean()
-            probs = probs ** .75
-            self.particles = self.particles[np.random.choice(np.arange(self.num_particles), size=self.num_particles, p=probs/probs.sum())]
-            
+        probs = np.array(self.sensor_model.evaluate(self.particles, lidar_data.ranges)) #CHANGE THIS LATER, VECTORIZE STUFF IN SENSOR MODEL
+        self.probs = probs
+
+        # rospy.loginfo(probs)
+        # rospy.loginfo(probs.sum())
+        #probs += probs.mean()
+        probs = probs ** .75
+        self.particles = self.particles[np.random.choice(np.arange(self.num_particles), size=self.num_particles, p=probs/probs.sum())]
+        
+        if self.flag:            
             # Publish the "average pose" of the particles
             # TODO: Experiment with the weighted average
             self.publish_average_point(self.particles, self.probs)
