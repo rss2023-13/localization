@@ -6,4 +6,5 @@ scan_simulator_2d.cpp
 *.sw*
 *.pyc
 .vscode/
+.DS_Store
 CATKIN_IGNORE
