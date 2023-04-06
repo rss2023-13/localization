@@ -19,7 +19,7 @@ class SensorModel:
         self.num_beams_per_particle = rospy.get_param("~num_beams_per_particle", 100)
         self.scan_theta_discretization = rospy.get_param("~scan_theta_discretization", 500)
         self.scan_field_of_view = rospy.get_param("~scan_field_of_view", 4.71)
-        self.lidar_scale_to_map = 1
+        self.lidar_scale_to_map = rospy.get_param("~lidar_scale_to_map_scale", 1.0)
 
         ####################################
         # TODO

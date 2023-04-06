@@ -131,7 +131,7 @@ class ParticleFilter:
         orientation.w = q[3]
 
         odom_msg = Odometry()
-        odom_msg.child_frame_id = "base_link_pf"
+        odom_msg.child_frame_id = self.particle_filter_frame
         odom_msg.header.frame_id = "map"
         odom_msg.pose.pose.position = point
         odom_msg.pose.pose.orientation = orientation
@@ -143,7 +143,7 @@ class ParticleFilter:
 
     def lidar_callback(self, lidar_data):
 
-        probs = np.array(self.sensor_model.evaluate(self.particles, lidar_data.ranges)) #CHANGE THIS LATER, VECTORIZE STUFF IN SENSOR MODEL
+        probs = self.sensor_model.evaluate(self.particles, lidar_data.ranges)
         # rospy.loginfo(probs)
         # rospy.loginfo(probs.sum())
         probs += probs.mean()
