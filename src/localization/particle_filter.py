@@ -68,6 +68,8 @@ class ParticleFilter:
         # Initialize the models
         self.motion_model = MotionModel()
         self.sensor_model = SensorModel()
+
+        self.flag = True
        
 
     # Implement the MCL algorithm
@@ -142,18 +144,23 @@ class ParticleFilter:
         self.odom_pub.publish(odom_msg)
 
     def lidar_callback(self, lidar_data):
+        if self.flag:
+            probs = np.array(self.sensor_model.evaluate(self.particles, lidar_data.ranges)) #CHANGE THIS LATER, VECTORIZE STUFF IN SENSOR MODEL
+            self.probs = probs
 
-        probs = np.array(self.sensor_model.evaluate(self.particles, lidar_data.ranges)) #CHANGE THIS LATER, VECTORIZE STUFF IN SENSOR MODEL
-        # rospy.loginfo(probs)
-        # rospy.loginfo(probs.sum())
-        probs += probs.mean()
-        self.particles = self.particles[np.random.choice(np.arange(self.num_particles), size=self.num_particles, p=probs/probs.sum())]
-        self.probs = probs
-        
-        # Publish the "average pose" of the particles
-        # TODO: Experiment with the weighted average
-        self.publish_average_point(self.particles, self.probs)
-        self.publish_particles()
+            # rospy.loginfo(probs)
+            # rospy.loginfo(probs.sum())
+            #probs += probs.mean()
+            probs = probs ** .75
+            self.particles = self.particles[np.random.choice(np.arange(self.num_particles), size=self.num_particles, p=probs/probs.sum())]
+            
+            # Publish the "average pose" of the particles
+            # TODO: Experiment with the weighted average
+            self.publish_average_point(self.particles, self.probs)
+            #self.publish_particles()
+
+
+        self.flag = not self.flag
 
     def odom_callback(self, odom_data):
 
@@ -171,7 +178,7 @@ class ParticleFilter:
         
         # Get the "average" particle through a weighted average
         self.publish_average_point(self.particles, self.probs)
-        self.publish_particles()
+        # self.publish_particles()
 
         # rospy.loginfo(self.particles)
     
