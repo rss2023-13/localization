@@ -12,6 +12,7 @@ from geometry_msgs.msg import Point
 from geometry_msgs.msg import PoseArray
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Quaternion
+import threading
 
 
 class ParticleFilter:
@@ -20,7 +21,7 @@ class ParticleFilter:
         # Get parameters
         self.particle_filter_frame = rospy.get_param("~particle_filter_frame", "/base_link_pf")
         self.rate = 26 #hertz
-        self.flag = True
+        self.flag = True 
 
         # Initialize publishers/subscribers
         #
@@ -63,8 +64,9 @@ class ParticleFilter:
 
         self.num_particles = rospy.get_param("~num_particles", 200)
         self.particles = np.zeros((self.num_particles, 3))
+        self.lock = threading.Lock() # for particle array self.particles
+
         self.probs = np.ones((self.num_particles,))
-        
         
         # Initialize the models
         self.motion_model = MotionModel()
@@ -154,8 +156,11 @@ class ParticleFilter:
         # rospy.loginfo(probs.sum())
         #probs += probs.mean()
         probs = probs ** .75
-        self.particles = self.particles[np.random.choice(np.arange(self.num_particles), size=self.num_particles, p=probs/probs.sum())]
         
+        self.lock.acquire()
+        self.particles = self.particles[np.random.choice(np.arange(self.num_particles), size=self.num_particles, p=probs/probs.sum())]
+        self.lock.release()
+
         if self.flag:            
             # Publish the "average pose" of the particles
             # TODO: Experiment with the weighted average
@@ -176,9 +181,10 @@ class ParticleFilter:
         dtheta = angular.z/self.rate
 
         # rospy.loginfo(linear)
-
+        self.lock.acquire()
         self.particles = self.motion_model.evaluate(self.particles, np.array([dx, dy, dtheta]))
-        
+        self.lock.release()
+
         # Get the "average" particle through a weighted average
         self.publish_average_point(self.particles, self.probs)
         # self.publish_particles()
@@ -205,7 +211,10 @@ class ParticleFilter:
         particles[:, 1] = np.random.normal(loc=position.y, scale=.3, size=self.num_particles)
         particles[:, 2] = np.random.normal(loc=angles[2], scale=abs(scale*angles[2]), size=self.num_particles)
         
+        self.lock.acquire()
         self.particles = particles
+        self.lock.release()
+
         self.probs = np.ones(self.num_particles)/self.num_particles
 
 
