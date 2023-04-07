@@ -1,13 +1,13 @@
 import math
 import numpy as np
-import rospy
+# import rospy
 
 class MotionModel:
 
     def __init__(self):
 
-        self.deterministic = rospy.get_param("~deterministic", False)
-        # self.deterministic = False
+        # self.deterministic = rospy.get_param("~deterministic", False)
+        self.deterministic = False
 
     def rotate_vectorized(self, odometry, thetas):
         """
@@ -23,12 +23,14 @@ class MotionModel:
         odometry_n_copies = np.array([dx_copies, dy_copies, dtheta_copies]).T
 
         if self.deterministic:
-            scale_factor = 0
+            x_scale_factor = 0
+            theta_scale_factor = 0
         else:
-            scale_factor = 1.5
+            x_scale_factor = 1.5
+            theta_scale_factor = 1
 
-        max_x_scale = scale_factor * np.abs(odometry[0])
-        max_theta_scale = 1 * np.abs(odometry[2])
+        max_x_scale = x_scale_factor * np.abs(odometry[0])
+        max_theta_scale = theta_scale_factor * np.abs(odometry[2])
 
         odometry_n_copies[:,0] = odometry_n_copies[:,0] + np.random.normal(scale=max_x_scale, size=N)
         odometry_n_copies[:,2] = odometry_n_copies[:,2] + np.random.normal(scale=max_theta_scale, size=N)
@@ -42,13 +44,9 @@ class MotionModel:
                              [zeros, zeros, ones]])
 
         matrices = np.transpose(matrices, axes=(2, 0, 1))
-        rotated = np.transpose(np.matmul(matrices, odometry_n_copies.T), axes=(0,2,1)) #(N,3,N)
+        rotated = np.transpose(np.matmul(matrices, odometry_n_copies.T), axes=(0,2,1)) #(N, N, 3)
 
-        noisy_odom_list = []
-        for i in range(N):
-            noisy_odom_list.append(rotated[i][i])
-        
-        return noisy_odom_list
+        return rotated[np.arange(N), np.arange(N), :]
 
     def evaluate(self, particles, odometry):
         """
@@ -91,7 +89,8 @@ class MotionModel:
 if __name__ == "__main__":
     test_motion = MotionModel()
     test_particles = np.array([[3,4,np.pi/3],
-                               [7,6,np.pi/4]])
+                               [7,6,np.pi/4],
+                               [3.5, 2, np.pi/3.5]])
     # part_2 = np.array([[7,6,np.pi/4]])
     test_odom = np.array([0.2232, -0.013397, np.pi/60])
     new_particles = test_motion.evaluate(test_particles, test_odom)
