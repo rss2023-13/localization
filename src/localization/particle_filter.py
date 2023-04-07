@@ -5,6 +5,7 @@ import tf.transformations as tf
 from sensor_model import SensorModel
 from motion_model import MotionModel
 import numpy as np
+import tf2_ros
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped
@@ -13,6 +14,8 @@ from geometry_msgs.msg import PoseArray
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Quaternion
 import threading
+from std_msgs.msg import Float32MultiArray
+import math
 
 
 class ParticleFilter:
@@ -22,6 +25,9 @@ class ParticleFilter:
         self.particle_filter_frame = rospy.get_param("~particle_filter_frame", "/base_link_pf")
         self.rate = 26 #hertz
         self.flag = 0 
+
+        self.tfBuffer = tf2_ros.Buffer()
+	    self.listener = tf2_ros.TransformListener(self.tfBuffer)
 
         # Initialize publishers/subscribers
         #
@@ -51,6 +57,8 @@ class ParticleFilter:
         self.pose_sub  = rospy.Subscriber("/initialpose", PoseWithCovarianceStamped,
                                           self.pose_initialization,
                                           queue_size=1)
+
+        self.error_pub = rospy.Publisher("/error", Float32MultiArray)
 
         #  *Important Note #3:* You must publish your pose estimate to
         #     the following topic. In particular, you must use the
@@ -142,10 +150,19 @@ class ParticleFilter:
         odom_msg.pose.pose.orientation = orientation
         odom_msg.header.stamp = rospy.Time.now()
 
-        # rospy.loginfo(point)
-        # rospy.loginfo(orientation)
-
         self.odom_pub.publish(odom_msg)
+
+        ########## GRAPHING ERROR ######################
+
+        time_error_msg = Float32MultiArray()
+
+        transform = tfBuffer.lookup_transform("map", "base_link", rospy.Time(), rospy.Duration(1.0))
+        real_x = transform.transform.translation.x
+        real_y = transform.transform.translation.y
+
+        error_dist = math.sqrt((real_x - point.x)**2 + (real_y - point.y)**2)
+        time_error_msg.data = [error_dist]
+        self.error_pub.publish(time_error_msg)
 
     def lidar_callback(self, lidar_data):
 
@@ -187,7 +204,7 @@ class ParticleFilter:
         self.publish_average_point(self.particles, self.probs)
         self.publish_particles()
 
-        # rospy.loginfo(self.particles)
+        
     
     def pose_initialization(self, pose_data):
 
