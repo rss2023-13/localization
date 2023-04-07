@@ -1,6 +1,6 @@
 import math
 import numpy as np
-# import rospy
+import rospy
 
 class MotionModel:
 
