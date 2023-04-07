@@ -20,6 +20,7 @@ class ParticleFilter:
         # Get parameters
         self.particle_filter_frame = rospy.get_param("~particle_filter_frame", "/base_link_pf")
         self.rate = 26 #hertz
+        self.flag = True
 
         # Initialize publishers/subscribers
         #
@@ -69,7 +70,6 @@ class ParticleFilter:
         self.motion_model = MotionModel()
         self.sensor_model = SensorModel()
 
-        self.flag = True
        
 
     # Implement the MCL algorithm
@@ -110,6 +110,7 @@ class ParticleFilter:
 
 
     def publish_average_point(self, particles, probs):
+        probs = probs ** 2
         new_x = np.average(particles[:,0], weights=probs)
         new_y = np.average(particles[:,1], weights=probs)
 
@@ -137,6 +138,7 @@ class ParticleFilter:
         odom_msg.header.frame_id = "map"
         odom_msg.pose.pose.position = point
         odom_msg.pose.pose.orientation = orientation
+        odom_msg.header.stamp = rospy.Time.now()
 
         # rospy.loginfo(point)
         # rospy.loginfo(orientation)
@@ -161,7 +163,7 @@ class ParticleFilter:
             #self.publish_particles()
 
 
-        self.flag = not self.flag
+        # self.flag = not self.flag
 
     def odom_callback(self, odom_data):
 
