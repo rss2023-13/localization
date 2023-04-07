@@ -21,7 +21,7 @@ class ParticleFilter:
         # Get parameters
         self.particle_filter_frame = rospy.get_param("~particle_filter_frame", "/base_link_pf")
         self.rate = 26 #hertz
-        self.flag = True 
+        self.flag = 0 
 
         # Initialize publishers/subscribers
         #
@@ -152,23 +152,21 @@ class ParticleFilter:
         probs = np.array(self.sensor_model.evaluate(self.particles, lidar_data.ranges)) #CHANGE THIS LATER, VECTORIZE STUFF IN SENSOR MODEL
         self.probs = probs
 
-        # rospy.loginfo(probs)
-        # rospy.loginfo(probs.sum())
-        #probs += probs.mean()
-        probs = probs ** .75
-        
-        self.lock.acquire()
-        self.particles = self.particles[np.random.choice(np.arange(self.num_particles), size=self.num_particles, p=probs/probs.sum())]
-        self.lock.release()
+        if self.flag%3 == 0:     
 
-        if self.flag:            
+            probs = probs ** .75
+            
+            self.lock.acquire()
+            self.particles = self.particles[np.random.choice(np.arange(self.num_particles), size=self.num_particles, p=probs/probs.sum())]
+            self.lock.release()
+
+               
             # Publish the "average pose" of the particles
             # TODO: Experiment with the weighted average
             self.publish_average_point(self.particles, self.probs)
             self.publish_particles()
 
-
-        # self.flag = not self.flag
+        self.flag += 1
 
     def odom_callback(self, odom_data):
 
