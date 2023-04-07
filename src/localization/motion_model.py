@@ -1,36 +1,37 @@
 import math
 import numpy as np
-import rospy
+# import rospy
 
 class MotionModel:
 
     def __init__(self):
 
-	    self.deterministic = rospy.get_param("~deterministic", False)
-        # self.deterministic = False
+	    # self.deterministic = rospy.get_param("~deterministic", False)
+        self.deterministic = False
 
     def rotate_vectorized(self, odometry, thetas):
         """
         thetas is an array of angles corresponding to the pose of the original particles
         """
 
-        # N = thetas.shape[0]
+        N = thetas.shape[0]
 
-        # dx_copies = np.ones_like(thetas) * odometry[0]
-        # dy_copies = np.ones_like(thetas) * odometry[1]
-        # dtheta_copies = np.ones_like(thetas) * odometry[2]
+        dx_copies = np.ones_like(thetas) * odometry[0]
+        dy_copies = np.ones_like(thetas) * odometry[1]
+        dtheta_copies = np.ones_like(thetas) * odometry[2]
 
-        # odometry_n_copies = np.array([dx_copies, dy_copies, dtheta_copies]).T
+        odometry_n_copies = np.array([dx_copies, dy_copies, dtheta_copies]).T
 
-        # scale_factor = 0 #change for nondeterministic
+        if self.deterministic:
+            scale_factor = 0
+        else:
+            scale_factor = 1.5
 
-        # max_x_scale = scale_factor * (np.abs(odometry[0]) + 0.05)
-        # max_y_scale = scale_factor * (np.abs(odometry[1]) + 0.05)
-        # max_theta_scale = scale_factor * np.abs(odometry[2])
+        max_x_scale = scale_factor * np.abs(odometry[0])
+        max_theta_scale = 1 * np.abs(odometry[2])
 
-        # odometry_n_copies[:,0] = odometry_n_copies[:,0] + np.random.normal(scale=max_x_scale, size=N)
-        # odometry_n_copies[:,1] = odometry_n_copies[:,1] + np.random.normal(scale=max_y_scale, size=N)
-        # odometry_n_copies[:,2] = odometry_n_copies[:,2] + np.random.normal(scale=max_theta_scale, size=N)
+        odometry_n_copies[:,0] = odometry_n_copies[:,0] + np.random.normal(scale=max_x_scale, size=N)
+        odometry_n_copies[:,2] = odometry_n_copies[:,2] + np.random.normal(scale=max_theta_scale, size=N)
 
         cosines = np.cos(thetas)
         sines = np.sin(thetas)
@@ -41,7 +42,13 @@ class MotionModel:
                              [zeros, zeros, ones]])
 
         matrices = np.transpose(matrices, axes=(2, 0, 1))
-        return np.matmul(matrices, odometry)
+        rotated = np.transpose(np.matmul(matrices, odometry_n_copies.T), axes=(0,2,1)) #(N,3,N)
+
+        noisy_odom_list = []
+        for i in range(N):
+            noisy_odom_list.append(rotated[i][i])
+        
+        return noisy_odom_list
 
     def evaluate(self, particles, odometry):
         """
@@ -66,18 +73,18 @@ class MotionModel:
         world_odom = self.rotate_vectorized(odometry, particles[:, 2])
         new_particles = particles + world_odom
 
-        if self.deterministic:
-            scale_factor = 0
-        else:
-            scale_factor = 2
+        # if self.deterministic:
+        #     scale_factor = 0
+        # else:
+        #     scale_factor = 2
 
-        max_x_scale = scale_factor * (np.abs(odometry[0])+0.05)
-        max_y_scale = scale_factor * (np.abs(odometry[1])+0.05)
-        max_theta_scale = scale_factor * np.abs(odometry[2])
+        # max_x_scale = scale_factor * np.abs(odometry[0])
+        # # max_y_scale = scale_factor * (np.abs(odometry[1])+0.05)
+        # max_theta_scale = scale_factor * np.abs(odometry[2])
 
-        new_particles[:,0] = new_particles[:,0] + np.random.normal(scale=max_x_scale, size=N)
-        new_particles[:,1] = new_particles[:,1] + np.random.normal(scale=max_y_scale, size=N)
-        new_particles[:,2] = new_particles[:,2] + np.random.normal(scale=max_theta_scale, size=N)
+        # new_particles[:,0] = new_particles[:,0] + np.random.normal(scale=max_x_scale, size=N)
+        # # new_particles[:,1] = new_particles[:,1] + np.random.normal(scale=max_y_scale, size=N)
+        # new_particles[:,2] = new_particles[:,2] + np.random.normal(scale=max_theta_scale, size=N)
 
         return new_particles
         
