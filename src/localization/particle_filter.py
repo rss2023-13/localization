@@ -12,6 +12,7 @@ from geometry_msgs.msg import Point
 from geometry_msgs.msg import PoseArray
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Quaternion
+import threading
 
 
 class ParticleFilter:
@@ -20,6 +21,7 @@ class ParticleFilter:
         # Get parameters
         self.particle_filter_frame = rospy.get_param("~particle_filter_frame", "/base_link_pf")
         self.rate = 26 #hertz
+        self.flag = True 
 
         # Initialize publishers/subscribers
         #
@@ -62,14 +64,14 @@ class ParticleFilter:
 
         self.num_particles = rospy.get_param("~num_particles", 200)
         self.particles = np.zeros((self.num_particles, 3))
+        self.lock = threading.Lock() # for particle array self.particles
+
         self.probs = np.ones((self.num_particles,))
-        
         
         # Initialize the models
         self.motion_model = MotionModel()
         self.sensor_model = SensorModel()
 
-        self.flag = True
        
 
     # Implement the MCL algorithm
@@ -110,6 +112,7 @@ class ParticleFilter:
 
 
     def publish_average_point(self, particles, probs):
+        probs = probs ** 2
         new_x = np.average(particles[:,0], weights=probs)
         new_y = np.average(particles[:,1], weights=probs)
 
@@ -137,6 +140,7 @@ class ParticleFilter:
         odom_msg.header.frame_id = "map"
         odom_msg.pose.pose.position = point
         odom_msg.pose.pose.orientation = orientation
+        odom_msg.header.stamp = rospy.Time.now()
 
         # rospy.loginfo(point)
         # rospy.loginfo(orientation)
@@ -151,14 +155,17 @@ class ParticleFilter:
         # rospy.loginfo(probs)
         # rospy.loginfo(probs.sum())
         #probs += probs.mean()
-        # if self.flag: 
         probs = probs ** .75
+        
+        self.lock.acquire()
         self.particles = self.particles[np.random.choice(np.arange(self.num_particles), size=self.num_particles, p=probs/probs.sum())]
-                
-        # Publish the "average pose" of the particles
-        # TODO: Experiment with the weighted average
-        self.publish_average_point(self.particles, self.probs)
-        self.publish_particles()
+        self.lock.release()
+
+        if self.flag:            
+            # Publish the "average pose" of the particles
+            # TODO: Experiment with the weighted average
+            self.publish_average_point(self.particles, self.probs)
+            self.publish_particles()
 
 
         # self.flag = not self.flag
@@ -174,9 +181,10 @@ class ParticleFilter:
         dtheta = angular.z/self.rate
 
         # rospy.loginfo(linear)
-
+        self.lock.acquire()
         self.particles = self.motion_model.evaluate(self.particles, np.array([dx, dy, dtheta]))
-        
+        self.lock.release()
+
         # Get the "average" particle through a weighted average
         self.publish_average_point(self.particles, self.probs)
         self.publish_particles()
@@ -203,7 +211,10 @@ class ParticleFilter:
         particles[:, 1] = np.random.normal(loc=position.y, scale=.3, size=self.num_particles)
         particles[:, 2] = np.random.normal(loc=angles[2], scale=abs(scale*angles[2]), size=self.num_particles)
         
+        self.lock.acquire()
         self.particles = particles
+        self.lock.release()
+
         self.probs = np.ones(self.num_particles)/self.num_particles
 
 

@@ -6,8 +6,8 @@ class MotionModel:
 
     def __init__(self):
 
-	    # self.deterministic = rospy.get_param("~deterministic", False)
-        self.deterministic = False
+        self.deterministic = rospy.get_param("~deterministic", False)
+        # self.deterministic = False
 
     def rotate_vectorized(self, odometry, thetas):
         """
