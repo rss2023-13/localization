@@ -165,7 +165,7 @@ class ParticleFilter:
             # Publish the "average pose" of the particles
             # TODO: Experiment with the weighted average
             self.publish_average_point(self.particles, self.probs)
-            #self.publish_particles()
+            self.publish_particles()
 
 
         # self.flag = not self.flag
@@ -187,7 +187,7 @@ class ParticleFilter:
 
         # Get the "average" particle through a weighted average
         self.publish_average_point(self.particles, self.probs)
-        # self.publish_particles()
+        self.publish_particles()
 
         # rospy.loginfo(self.particles)
     
