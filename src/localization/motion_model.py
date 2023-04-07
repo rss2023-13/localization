@@ -24,15 +24,18 @@ class MotionModel:
 
         if self.deterministic:
             x_scale_factor = 0
+            y_scale_factor = 0
             theta_scale_factor = 0
         else:
-            x_scale_factor = 1.5
+            x_scale_factor = 2
+            y_scale_factor = 0.02
             theta_scale_factor = 1
 
         max_x_scale = x_scale_factor * np.abs(odometry[0])
         max_theta_scale = theta_scale_factor * np.abs(odometry[2])
 
         odometry_n_copies[:,0] = odometry_n_copies[:,0] + np.random.normal(scale=max_x_scale, size=N)
+        odometry_n_copies[:,1] = odometry_n_copies[:,1] + np.random.normal(scale=y_scale_factor, size=N)
         odometry_n_copies[:,2] = odometry_n_copies[:,2] + np.random.normal(scale=max_theta_scale, size=N)
 
         cosines = np.cos(thetas)
