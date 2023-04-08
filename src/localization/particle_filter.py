@@ -24,6 +24,7 @@ class ParticleFilter:
         self.particle_filter_frame = rospy.get_param("~particle_filter_frame", "/base_link_pf")
         self.rate = 26 #hertz
         self.flag = 0 
+        self.speed = None
 
         # Initialize publishers/subscribers
         #
@@ -36,6 +37,10 @@ class ParticleFilter:
         #     information, and *not* use the pose component.
         scan_topic = rospy.get_param("~scan_topic", "/scan")
         odom_topic = rospy.get_param("~odom_topic", "/odom")
+
+        # Initialize the models
+        self.motion_model = MotionModel()
+        self.sensor_model = SensorModel()
 
         self.laser_sub = rospy.Subscriber(scan_topic, LaserScan,
                                           self.lidar_callback,
@@ -67,6 +72,7 @@ class ParticleFilter:
         # rospy.init_node('path_node')
         self.path_pub = rospy.Publisher('/path', Path, queue_size=1)
         
+        self.path = Path()
         
         self.num_particles = rospy.get_param("~num_particles", 200)
         self.particles = np.zeros((self.num_particles, 3))
@@ -74,8 +80,7 @@ class ParticleFilter:
 
         self.probs = np.ones((self.num_particles,))
         
-        self.path = Path()
-
+        
         # Initialize the models
         self.motion_model = MotionModel()
         self.sensor_model = SensorModel()
@@ -120,7 +125,11 @@ class ParticleFilter:
 
 
     def publish_average_point(self, particles, probs):
-        probs = probs ** 2
+        probs = probs/probs.sum()
+        probs = probs **2
+
+        tau = 0.94 - .03 * self.speed # account for changes in speed
+ 
         new_x = np.average(particles[:,0], weights=probs)
         new_y = np.average(particles[:,1], weights=probs)
 
@@ -168,7 +177,8 @@ class ParticleFilter:
     def lidar_callback(self, lidar_data):
 
         probs = np.array(self.sensor_model.evaluate(self.particles, lidar_data.ranges)) #CHANGE THIS LATER, VECTORIZE STUFF IN SENSOR MODEL
-        self.probs = probs 
+
+        self.probs = probs
 
         if self.flag%3 == 0:     
 
@@ -196,6 +206,8 @@ class ParticleFilter:
         dy = linear.y/self.rate
         dtheta = angular.z/self.rate
 
+        self.speed = linear.x
+
         # rospy.loginfo(linear)
         self.lock.acquire()
         self.particles = self.motion_model.evaluate(self.particles, np.array([dx, dy, dtheta]))
@@ -212,8 +224,7 @@ class ParticleFilter:
         position = pose_data.pose.pose.position
         q = pose_data.pose.pose.orientation
         
-        
-        angles = tf.euler_from_quaternion([q.x, q.y, q.z, q.w])
+        angles = self.euler_from_quaternion(q)
 
         base_point = [position.x, position.y, angles[2]]
         particles = np.zeros((self.num_particles, 3))
