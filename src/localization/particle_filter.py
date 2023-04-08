@@ -43,6 +43,10 @@ class ParticleFilter:
         scan_topic = rospy.get_param("~scan_topic", "/scan")
         odom_topic = rospy.get_param("~odom_topic", "/odom")
 
+        # Initialize the models
+        self.motion_model = MotionModel()
+        self.sensor_model = SensorModel()
+
         self.laser_sub = rospy.Subscriber(scan_topic, LaserScan,
                                           self.lidar_callback,
                                           queue_size=1)
@@ -80,9 +84,7 @@ class ParticleFilter:
         self.prev_x = None
         self.prev_y = None
         
-        # Initialize the models
-        self.motion_model = MotionModel()
-        self.sensor_model = SensorModel()
+        
 
 
     # Implement the MCL algorithm
@@ -183,6 +185,7 @@ class ParticleFilter:
     def lidar_callback(self, lidar_data):
 
         probs = np.array(self.sensor_model.evaluate(self.particles, lidar_data.ranges)) #CHANGE THIS LATER, VECTORIZE STUFF IN SENSOR MODEL
+
         self.probs = probs
 
         if self.flag%3 == 0:     
