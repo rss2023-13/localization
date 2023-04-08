@@ -5,17 +5,16 @@ import tf.transformations as tf
 from sensor_model import SensorModel
 from motion_model import MotionModel
 import numpy as np
-import tf2_ros
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
+from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseWithCovarianceStamped
+from geometry_msgs.msg import PoseStamped
 from geometry_msgs.msg import Point
 from geometry_msgs.msg import PoseArray
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Quaternion
 import threading
-from std_msgs.msg import Float32MultiArray
-import math
 
 
 class ParticleFilter:
@@ -26,9 +25,6 @@ class ParticleFilter:
         self.rate = 26 #hertz
         self.flag = 0 
 
-        self.tfBuffer = tf2_ros.Buffer()
-        self.listener = tf2_ros.TransformListener(self.tfBuffer)
-
         # Initialize publishers/subscribers
         #
         #  *Important Note #1:* It is critical for your particle
@@ -38,7 +34,6 @@ class ParticleFilter:
         #     a twist component, you will only be provided with the
         #     twist component, so you should rely only on that
         #     information, and *not* use the pose component.
-        
         scan_topic = rospy.get_param("~scan_topic", "/scan")
         odom_topic = rospy.get_param("~odom_topic", "/odom")
 
@@ -59,8 +54,6 @@ class ParticleFilter:
                                           self.pose_initialization,
                                           queue_size=1)
 
-        # self.error_pub = rospy.Publisher("/error", Float32MultiArray, queue_size=1)
-
         #  *Important Note #3:* You must publish your pose estimate to
         #     the following topic. In particular, you must use the
         #     pose field of the Odometry message. You do not need to
@@ -71,18 +64,23 @@ class ParticleFilter:
 
         self.particle_pub  = rospy.Publisher("/particles", PoseArray, queue_size = 1)
 
+        # rospy.init_node('path_node')
+        self.path_pub = rospy.Publisher('/path', Path, queue_size=1)
+        
+        
         self.num_particles = rospy.get_param("~num_particles", 200)
         self.particles = np.zeros((self.num_particles, 3))
         self.lock = threading.Lock() # for particle array self.particles
 
         self.probs = np.ones((self.num_particles,))
-        self.prev_x = None
-        self.prev_y = None
         
+        self.path = Path()
+
         # Initialize the models
         self.motion_model = MotionModel()
         self.sensor_model = SensorModel()
 
+       
 
     # Implement the MCL algorithm
     # using the sensor model and the motion model
@@ -93,9 +91,6 @@ class ParticleFilter:
     #
     # Publish a transformation frame between the map
     # and the particle_filter_frame.
-
-    def euler_from_quaternion(self, quaternion):
-        return tf.euler_from_quaternion([quaternion.x, quaternion.y, quaternion.z, quaternion.w])
 
     def publish_particles(self):
         particle_array = PoseArray()
@@ -125,20 +120,11 @@ class ParticleFilter:
 
 
     def publish_average_point(self, particles, probs):
-        probs = probs/probs.sum()
-        probs = probs **2
-
-        tau = 0.91
- 
+        probs = probs ** 2
         new_x = np.average(particles[:,0], weights=probs)
         new_y = np.average(particles[:,1], weights=probs)
 
-        if self.prev_x is not None:
-            new_x = (1-tau)*new_x + tau*self.prev_x
-            new_y = (1-tau)*new_y + tau*self.prev_y
-
-        self.prev_x = new_x
-        self.prev_y = new_y
+        # rospy.loginfo(particles[0])
 
         angles = self.particles[:,2]
         angle_vecs = np.array([np.cos(angles), np.sin(angles)])
@@ -164,25 +150,25 @@ class ParticleFilter:
         odom_msg.pose.pose.orientation = orientation
         odom_msg.header.stamp = rospy.Time.now()
 
+        # rospy.loginfo(point)
+        # rospy.loginfo(orientation)
+
         self.odom_pub.publish(odom_msg)
 
-        ########## GRAPHING ERROR ######################
+        # path message 
+        self.path.header = odom_msg.header
 
-        # error = Float32MultiArray()
+        pose = PoseStamped()
+        pose.header = self.path.header
+        pose.pose = odom_msg.pose.pose
 
-        # transform = self.tfBuffer.lookup_transform("map", "base_link", rospy.Time(), rospy.Duration(1.0))
-        # real_x = transform.transform.translation.x
-        # real_y = transform.transform.translation.y
-        # real_theta = self.euler_from_quaternion(transform.transform.rotation)[2]
-
-        # error.data = ([new_x - real_x, new_y - real_y, abs(real_theta-new_angle)])
-
-        # self.error_pub.publish(error)
+        self.path.poses.append(pose)
+        self.path_pub.publish(self.path)
 
     def lidar_callback(self, lidar_data):
 
         probs = np.array(self.sensor_model.evaluate(self.particles, lidar_data.ranges)) #CHANGE THIS LATER, VECTORIZE STUFF IN SENSOR MODEL
-        self.probs = probs
+        self.probs = probs 
 
         if self.flag%3 == 0:     
 
@@ -218,18 +204,16 @@ class ParticleFilter:
         # Get the "average" particle through a weighted average
         self.publish_average_point(self.particles, self.probs)
         self.publish_particles()
-        
+
+        # rospy.loginfo(self.particles)
     
     def pose_initialization(self, pose_data):
-
-        self.prev_x = None
-        self.prev_y = None
 
         position = pose_data.pose.pose.position
         q = pose_data.pose.pose.orientation
         
         
-        angles = self.euler_from_quaternion(q)
+        angles = tf.euler_from_quaternion([q.x, q.y, q.z, q.w])
 
         base_point = [position.x, position.y, angles[2]]
         particles = np.zeros((self.num_particles, 3))
@@ -252,6 +236,6 @@ class ParticleFilter:
 
 
 if __name__ == "__main__":
-    rospy.init_node("particle_filter")
+    rospy.init_node("path_node")#("particle_filter")
     pf = ParticleFilter()
     rospy.spin()
