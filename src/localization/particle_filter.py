@@ -59,7 +59,7 @@ class ParticleFilter:
                                           self.pose_initialization,
                                           queue_size=1)
 
-        self.error_pub = rospy.Publisher("/error", Float32MultiArray, queue_size=1)
+        # self.error_pub = rospy.Publisher("/error", Float32MultiArray, queue_size=1)
 
         #  *Important Note #3:* You must publish your pose estimate to
         #     the following topic. In particular, you must use the
@@ -168,16 +168,16 @@ class ParticleFilter:
 
         ########## GRAPHING ERROR ######################
 
-        error = Float32MultiArray()
+        # error = Float32MultiArray()
 
-        transform = self.tfBuffer.lookup_transform("map", "base_link", rospy.Time(), rospy.Duration(1.0))
-        real_x = transform.transform.translation.x
-        real_y = transform.transform.translation.y
-        real_theta = self.euler_from_quaternion(transform.transform.rotation)[2]
+        # transform = self.tfBuffer.lookup_transform("map", "base_link", rospy.Time(), rospy.Duration(1.0))
+        # real_x = transform.transform.translation.x
+        # real_y = transform.transform.translation.y
+        # real_theta = self.euler_from_quaternion(transform.transform.rotation)[2]
 
-        error.data = ([new_x - real_x, new_y - real_y, abs(real_theta-new_angle)])
+        # error.data = ([new_x - real_x, new_y - real_y, abs(real_theta-new_angle)])
 
-        self.error_pub.publish(error)
+        # self.error_pub.publish(error)
 
     def lidar_callback(self, lidar_data):
 
