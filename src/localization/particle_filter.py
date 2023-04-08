@@ -25,6 +25,7 @@ class ParticleFilter:
         self.particle_filter_frame = rospy.get_param("~particle_filter_frame", "/base_link_pf")
         self.rate = 26 #hertz
         self.flag = 0 
+        self.speed = None
 
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
@@ -128,7 +129,7 @@ class ParticleFilter:
         probs = probs/probs.sum()
         probs = probs **2
 
-        tau = 0.91
+        tau = 0.94 - .03 * self.speed # account for changes in speed
  
         new_x = np.average(particles[:,0], weights=probs)
         new_y = np.average(particles[:,1], weights=probs)
@@ -210,6 +211,8 @@ class ParticleFilter:
         dy = linear.y/self.rate
         dtheta = angular.z/self.rate
 
+        self.speed = linear.x
+
         # rospy.loginfo(linear)
         self.lock.acquire()
         self.particles = self.motion_model.evaluate(self.particles, np.array([dx, dy, dtheta]))
@@ -227,7 +230,6 @@ class ParticleFilter:
 
         position = pose_data.pose.pose.position
         q = pose_data.pose.pose.orientation
-        
         
         angles = self.euler_from_quaternion(q)
 
