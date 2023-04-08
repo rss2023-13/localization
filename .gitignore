@@ -5,6 +5,7 @@ build
 scan_simulator_2d.cpp
 *.sw*
 *.pyc
+*.bag
 .vscode/
 .DS_Store
 CATKIN_IGNORE
