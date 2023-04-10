@@ -138,7 +138,7 @@ class ParticleFilter:
         probs = probs/probs.sum()
         probs = probs **2
 
-        tau = 0.94 - .03 * self.speed # account for changes in speed
+        tau = 0 #0.94 - .03 * self.speed # account for changes in speed
  
         new_x = np.average(particles[:,0], weights=probs)
         new_y = np.average(particles[:,1], weights=probs)
