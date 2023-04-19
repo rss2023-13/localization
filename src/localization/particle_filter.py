@@ -83,7 +83,7 @@ class ParticleFilter:
         
         self.path = Path()
 
-        self.num_particles = rospy.get_param("~num_particles", 200)
+        self.num_particles = rospy.get_param("~num_particles", 400)
         self.particles = np.zeros((self.num_particles, 3))
         self.lock = threading.Lock() # for particle array self.particles
 
@@ -136,7 +136,7 @@ class ParticleFilter:
 
     def publish_average_point(self, particles, probs):
         probs = probs/probs.sum()
-        probs = probs **2
+        probs = probs **5
 
         tau = 0.94 - .03 * self.speed # account for changes in speed
  
@@ -207,7 +207,7 @@ class ParticleFilter:
 
         if self.flag%3 == 0:     
 
-            probs = probs ** .75
+            probs = probs ** .03
             
             self.lock.acquire()
             self.particles = self.particles[np.random.choice(np.arange(self.num_particles), size=self.num_particles, p=probs/probs.sum())]
@@ -275,6 +275,6 @@ class ParticleFilter:
 
 
 if __name__ == "__main__":
-    rospy.init_node("particle_filter.py")
+    rospy.init_node("particle_filter")
     pf = ParticleFilter()
     rospy.spin()
