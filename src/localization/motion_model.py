@@ -27,9 +27,11 @@ class MotionModel:
             y_scale_factor = 0
             theta_scale_factor = 0
         else:
-            x_scale_factor = 2
-            y_scale_factor = 0.1
-            theta_scale_factor = 3
+            #simulation: 2, .02, 1
+            #robot: 2, .1, 3
+            x_scale_factor = 2 
+            y_scale_factor = 0.02
+            theta_scale_factor = 1
 
         max_x_scale = x_scale_factor * np.abs(odometry[0])
         max_theta_scale = theta_scale_factor * np.abs(odometry[2])
