@@ -27,8 +27,8 @@ class MotionModel:
             y_scale_factor = 0
             theta_scale_factor = 0
         else:
-            #simulation: 2, .02, 1
-            #robot: 2, .1, 3
+            #simulation: 1.5, .02, 0.5
+            #robot: 2, .05, .75
             x_scale_factor = 1.5
             y_scale_factor = 0.02
             theta_scale_factor = 0.5

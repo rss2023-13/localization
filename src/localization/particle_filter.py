@@ -136,9 +136,11 @@ class ParticleFilter:
 
     def publish_average_point(self, particles, probs):
         probs = probs/probs.sum()
+
+        #racecar: 2, simulation: 5
         probs = probs **5
 
-        tau = 0.94 - .03 * self.speed # account for changes in speed
+        tau = 0.94 - .03 * self.speed # account for changes in speed, 0 on racecar
  
         new_x = np.average(particles[:,0], weights=probs)
         new_y = np.average(particles[:,1], weights=probs)
@@ -206,7 +208,7 @@ class ParticleFilter:
         self.probs = probs
 
         if self.flag%3 == 0:     
-
+            #simulation :.03, robot: .75
             probs = probs ** .03
             
             self.lock.acquire()
